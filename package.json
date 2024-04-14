@@ -1,0 +1,36 @@
+{
+  "name": "poker",
+  "private": true,
+  "scripts": {
+    "start": "meteor run",
+    "test": "meteor test --once --driver-package meteortesting:mocha",
+    "test-app": "TEST_WATCH=1 meteor test --full-app --driver-package meteortesting:mocha",
+    "visualize": "meteor --production --extra-packages bundle-visualizer"
+  },
+  "dependencies": {
+    "@babel/core": "^7.24.4",
+    "@babel/eslint-parser": "^7.24.1",
+    "@babel/runtime": "^7.23.5",
+    "eslint-plugin-meteor": "^7.3.0",
+    "eslint-plugin-no-only-tests": "^3.1.0",
+    "eslint-plugin-no-relative-import-paths": "^1.5.4",
+    "jquery": "^3.7.1",
+    "meteor-node-stubs": "^1.2.7",
+    "prettier-eslint": "^16.3.0"
+  },
+  "meteor": {
+    "mainModule": {
+      "client": "client/main.js",
+      "server": "server/main.js"
+    },
+    "testModule": "tests/main.js"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.0.2",
+    "@eslint/js": "^9.0.0",
+    "eslint": "^8.2.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "globals": "^15.0.0"
+  }
+}
