@@ -1,3 +1,5 @@
+import { rankHands } from '@xpressit/winning-poker-hand-rank';
+
 const cards = [
   '2c',
   '2d',
@@ -89,70 +91,126 @@ export default class Poker {
     this.stages = [PREFLOP, FLOP, TURN, RIVER];
     this.stagesRevealCards = [3, 1, 1];
     this.turn = 3;
+    this.showCards = false;
     this.board = [];
 
+    this.smallBlind = 2;
+    this.bigBlind = 4;
     this.initPlayers();
-    this.board = ['As', '3d', '3h', 'Td', 'Ts'];
-    this.players = [{ cards: ['3c', 'Ac'] }, { cards: ['Th', 'Tc'] }];
-    this.getWinner();
+    this.board = ['2c', 'Js', '8c', 'Qc', 'Jh'];
+    t(this.players);
+
+    this.call();
+    this.call();
+    this.call();
+    this.call();
+    this.raise(12);
+    this.call();
+    this.call();
+    this.fold();
+    this.call();
+    this.check();
+    this.raise(52);
+    this.raise(208);
+    this.call();
+    this.call();
+    this.call();
+    this.check();
+    this.raise(442);
+    this.allIn();
+    this.fold();
+    this.allIn();
+    this.allIn();
+
+    t(this.allPlayers);
+  }
+
+  nextTurn(move) {
+    if (move) this.turn = (this.turn + 1) % this.players.length; // next player
+    else this.turn %= this.players.length; // fold
+
+    if (this.players[this.turn].allIn) {
+      if (this.allPlayersAllIn()) {
+        // everyone in allin so show cards
+        this.showCards = true;
+      } else {
+        this.nextTurn(true); // next player is allIn so dont play
+      }
+    }
+  }
+
+  allPlayersAllIn() {
+    const playersInAllIn = this.players.filter(player => player.allIn).length;
+
+    return playersInAllIn === this.players.length;
   }
 
   getWinner() {
-    for (let i = 0; i < this.players.length; i++) {
-      const hand = this.board.concat(this.players[i].cards);
-      const recurrences = [];
-      for (let j = 0; j < 7; j++) {
-        const card = hand[j];
-        let recurrence = 1;
-        // check pair, three, four
-        for (let k = j + 1; k < 7; k++) {
-          if (card[0] === hand[k][0]) recurrence += 1;
-        }
-        recurrences.push(recurrence);
-      }
+    const upperBoard = this.board.map(card => card.toLocaleUpperCase());
+    const upperPlayersHand = this.players.map(player => [
+      player.cards[0].toLocaleUpperCase(),
+      player.cards[1].toLocaleUpperCase(),
+    ]);
 
-      l(hand);
-      l(recurrences);
+    const ranks = rankHands('texas', upperBoard, upperPlayersHand);
+    const bestHand = ranks.reduce(
+      (lowest, current) => (current.rank < lowest.rank ? current : lowest),
+      ranks[0],
+    );
 
-      if (recurrences.every(recu => recu === 1)) {
-        l('high');
-      } else {
-        for (let i = 0; i < 7; i++) {
-          const cards = [];
-          if (recurrences[i] !== 1) {
-            cards.push({
-              card: hand[i][0],
-              cards: [hand[i]],
-              recu: recurrences[i],
-            });
-          }
-        }
-      }
-    }
+    return ranks.indexOf(bestHand);
   }
 
   revealBoard() {
-    for (let i = 0; i < this.stagesRevealCards[this.stage]; i++) {
-      const randomIndex = Math.floor(Math.random() * this.deck.length);
-      const card = cards[this.deck[randomIndex]];
-      this.board.push(card);
-      this.deck.splice(randomIndex, 1);
-    }
+    // for (let i = 0; i < this.stagesRevealCards[this.stage]; i++) {
+    //   const randomIndex = Math.floor(Math.random() * this.deck.length);
+    //   const card = cards[this.deck[randomIndex]];
+    //   this.board.push(card);
+    //   this.deck.splice(randomIndex, 1);
+    // }
+    // l(this.board);
   }
 
   checkEndBetting() {
-    const endRound = this.players.every(
-      (player, index, array) => player.bet === array[0].bet,
-    );
+    const hasTalk = this.players.every(player => player.hasTalk);
+    const notAllIn = this.players.filter(player => !player.allIn);
 
-    if (endRound) {
+    let bet = false;
+    if (notAllIn.length === 1) {
+      if (notAllIn[0].bet >= this.betToCall) {
+        this.showCards = true;
+        bet = true;
+      }
+    } else {
+      bet = notAllIn.every((player, i, arr) => player.bet === arr[0].bet);
+    }
+
+    const endRound = hasTalk && bet;
+
+    if (endRound || this.showCards) {
       if (this.stage === 3) {
-        const winner = this.getWinner();
-        this.players[winner].chips += this.pot;
-        this.newHands();
+        const winner = this.players[this.getWinner()];
+        winner.chips += winner.allIn ? winner.allInPot : this.pot;
+
+        const playersAllIn = this.players.filter(p => p.allIn && p !== winner);
+        if (playersAllIn.length) {
+          const oppsPot = Math.round(
+            (this.pot - winner.allInPot) / playersAllIn.length,
+          );
+
+          for (let i = 0; i < playersAllIn.length; i++) {
+            playersAllIn[i].chips = Math.max(oppsPot, 0);
+          }
+        }
+
+        this.stage = 0;
+        // this.newHands();
       } else {
-        for (let i = 0; i < this.players.length; i++) {
-          this.players[i].bet = 0;
+        if (!this.showCards) {
+          for (let i = 0; i < this.players.length; i++) {
+            this.players[i].bet = 0;
+            this.players[i].hasTalk = false;
+          }
         }
 
         this.revealBoard();
@@ -161,44 +219,127 @@ export default class Poker {
         this.turn = this.players[0].dealer ? 1 : 0;
       }
     }
+
+    if (this.stage !== 0 && this.showCards) this.checkEndBetting();
   }
 
-  playerRaise(raise) {
-    this.players[this.turn].bet = raise;
-    this.players[this.turn].chips -= raise;
+  allInPot(player, allIn) {
+    let allInPot = allIn + this.pot - player.bet;
+
+    const players = this.players.filter(p => player !== p);
+    for (let i = 0; i < players.length; i++) {
+      const opp = players[i];
+
+      if (opp.bet > allIn) {
+        allInPot += -opp.bet + Math.min(opp.bet, allIn);
+        player.allInPotUser.push(opp.userId);
+      }
+    }
+
+    return allInPot;
+  }
+
+  addToAllInPot(player, bet) {
+    const playersAllIn = this.players.filter(
+      p => p.allIn && p.allInStage === this.stage && p !== player,
+    );
+
+    for (let i = 0; i < playersAllIn.length; i++) {
+      const opp = playersAllIn[i];
+
+      if (!opp.allInPotUser.includes(player.userId)) {
+        if (player.allIn) {
+          opp.allInPot += Math.min(
+            Math.min(bet, opp.bet) - player.bet,
+            opp.bet,
+          );
+        } else {
+          opp.allInPot += Math.min(bet, opp.bet);
+        }
+
+        opp.allInPotUser.push(player.userId);
+      }
+    }
+  }
+
+  allIn() {
+    const player = this.players[this.turn];
+    const allIn = player.chips + player.bet;
+    player.allIn = true;
+    player.allInStage = this.stage;
+    player.allInPotUser = [];
+    player.allInPot = this.allInPot(player, allIn);
+    this.pot += allIn - player.bet;
+    this.betToCall = Math.max(allIn, this.betToCall);
+    player.chips = 0;
+
+    this.addToAllInPot(player, allIn);
+    player.bet = allIn;
+
+    player.hasTalk = true;
+    this.nextTurn(true);
+    this.checkEndBetting();
+  }
+
+  raise(raise) {
+    const player = this.players[this.turn];
+    const diffToRaise = raise - player.bet;
+    player.chips -= diffToRaise;
+    player.bet = raise;
     this.betToCall = raise;
-    this.pot += raise;
-    this.turn = (this.turn + 1) % this.players.length;
+    this.pot += diffToRaise;
+
+    this.addToAllInPot(player, diffToRaise);
+
+    player.hasTalk = true;
+    this.nextTurn(true);
     this.checkEndBetting();
   }
 
-  playerCall() {
-    const diffToCall = this.betToCall - this.players[this.turn].bet;
-    this.players[this.turn].bet = this.betToCall;
-    this.players[this.turn].chips -= diffToCall;
-    this.pot += diffToCall;
-    this.turn = (this.turn + 1) % this.players.length;
+  call() {
+    const player = this.players[this.turn];
+    if (this.betToCall >= player.chips + player.bet) {
+      this.allIn();
+    } else {
+      const diffToCall = this.betToCall - player.bet;
+      player.bet = this.betToCall;
+      player.chips -= diffToCall;
+      this.pot += diffToCall;
+
+      const playersInAllIn = this.players.filter(
+        playerInAllIn => playerInAllIn.allIn,
+      ).length;
+      if (this.players.length === playersInAllIn - 1) {
+        player.allIn = true;
+      }
+
+      this.addToAllInPot(player, diffToCall);
+
+      player.hasTalk = true;
+      this.nextTurn(true);
+      this.checkEndBetting();
+    }
+  }
+
+  check() {
+    this.players[this.turn].hasTalk = true;
+    this.nextTurn(true);
     this.checkEndBetting();
   }
 
-  playerCheck() {
-    this.turn = (this.turn + 1) % this.players.length;
-    this.checkEndBetting();
-  }
-
-  playerFold() {
+  fold() {
     this.players.splice(this.turn, 1);
 
     if (this.players.length === 1) {
       this.players[0].chips += this.pot;
       this.newHands();
+    } else {
+      this.nextTurn(false);
+      this.checkEndBetting();
     }
-
-    this.turn %= this.players.length;
-    this.checkEndBetting();
   }
 
-  playerChoice() {
+  choice() {
     if (this.betToCall > 0) {
       return CALL;
     } else {
@@ -223,6 +364,10 @@ export default class Poker {
   movePlayersPosition() {
     for (let i = 0; i < this.allPlayers.length; i++) {
       this.allPlayers[i].bet = 0;
+      this.allPlayers[i].allIn = false;
+      this.allPlayers[i].allInPot = 0;
+      this.allPlayers[i].allInStage = -1;
+      this.allPlayers[i].hasTalk = false;
     }
 
     // dealer
@@ -249,7 +394,7 @@ export default class Poker {
   }
 
   initPlayers() {
-    this.shuffleHands();
+    // this.shuffleHands();
     this.setPlayersPosition();
     this.players = this.allPlayers.slice();
     this.turn %= this.players.length;
@@ -278,12 +423,13 @@ export default class Poker {
   setPlayersPosition() {
     // players chips
     for (let i = 0; i < this.allPlayers.length; i++) {
-      this.allPlayers[i].chips = this.buyIn;
+      // this.allPlayers[i].chips = this.buyIn;
       this.allPlayers[i].bet = 0;
     }
 
     // dealer
-    const dealerIndex = Math.floor(Math.random() * this.allPlayers.length);
+    // const dealerIndex = Math.floor(Math.random() * this.allPlayers.length);
+    const dealerIndex = 0;
     this.allPlayers[dealerIndex].dealer = true;
     this.allPlayers = this.allPlayers
       .slice(dealerIndex)
@@ -305,10 +451,11 @@ export default class Poker {
 }
 
 const players = [
-  { userId: 'max' },
-  { userId: 'bot' },
-  { userId: 'tez' },
-  { userId: 'cap' },
+  { userId: 'like_a_virgin', chips: 418, cards: ['4h', '5h'] },
+  { userId: 'LuckyPete47', chips: 1399, cards: ['Tc', '6c'] },
+  { userId: 'max', chips: 1611, cards: ['Kd', 'Ac'] },
+  { userId: 'zonflar', chips: 308, cards: ['Jd', '3h'] },
+  { userId: 'Asko1217', chips: 1218, cards: ['Jd', '3h'] },
 ];
 const buyIn = 100;
 
