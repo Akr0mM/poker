@@ -80,10 +80,19 @@ const CHECK = 'check';
 const CALL = 'call';
 
 export default class Poker {
-  constructor(players, buyIn) {
-    this.allPlayers = players;
-    this.buyIn = buyIn;
-    this.smallBlind = Math.round((this.buyIn / 200) * 100) / 100;
+  constructor(config) {
+    this.allPlayers = config.players;
+    this.buyIn = config.buyIn;
+
+    this.test = config.test;
+    if (this.test) {
+      this.testMode = this.test.mode;
+      this.test.onGoing = true;
+      this.smallBlind = Math.round(this.buyIn / 200);
+    } else {
+      this.smallBlind = Math.round((this.buyIn / 200) * 100) / 100;
+    }
+
     this.bigBlind = this.smallBlind * 2;
     this.pot = 0;
     this.betToCall = 0;
@@ -94,35 +103,7 @@ export default class Poker {
     this.showCards = false;
     this.board = [];
 
-    this.smallBlind = 2;
-    this.bigBlind = 4;
     this.initPlayers();
-    this.board = ['2c', 'Js', '8c', 'Qc', 'Jh'];
-    t(this.players);
-
-    this.call();
-    this.call();
-    this.call();
-    this.call();
-    this.raise(12);
-    this.call();
-    this.call();
-    this.fold();
-    this.call();
-    this.check();
-    this.raise(52);
-    this.raise(208);
-    this.call();
-    this.call();
-    this.call();
-    this.check();
-    this.raise(442);
-    this.allIn();
-    this.fold();
-    this.allIn();
-    this.allIn();
-
-    t(this.allPlayers);
   }
 
   nextTurn(move) {
@@ -153,22 +134,22 @@ export default class Poker {
     ]);
 
     const ranks = rankHands('texas', upperBoard, upperPlayersHand);
-    const bestHand = ranks.reduce(
-      (lowest, current) => (current.rank < lowest.rank ? current : lowest),
-      ranks[0],
-    );
 
-    return ranks.indexOf(bestHand);
+    const winners = ranks
+      .slice()
+      .sort((a, b) => a.rank - b.rank)
+      .map(winner => ranks.indexOf(winner));
+
+    return winners;
   }
 
   revealBoard() {
-    // for (let i = 0; i < this.stagesRevealCards[this.stage]; i++) {
-    //   const randomIndex = Math.floor(Math.random() * this.deck.length);
-    //   const card = cards[this.deck[randomIndex]];
-    //   this.board.push(card);
-    //   this.deck.splice(randomIndex, 1);
-    // }
-    // l(this.board);
+    for (let i = 0; i < this.stagesRevealCards[this.stage]; i++) {
+      const randomIndex = Math.floor(Math.random() * this.deck.length);
+      const card = cards[this.deck[randomIndex]];
+      this.board.push(card);
+      this.deck.splice(randomIndex, 1);
+    }
   }
 
   checkEndBetting() {
@@ -189,38 +170,61 @@ export default class Poker {
 
     if (endRound || this.showCards) {
       if (this.stage === 3) {
-        const winner = this.players[this.getWinner()];
-        winner.chips += winner.allIn ? winner.allInPot : this.pot;
+        const winners = this.getWinner();
+        const winner = this.players[winners[0]];
 
-        const playersAllIn = this.players.filter(p => p.allIn && p !== winner);
-        if (playersAllIn.length) {
-          const oppsPot = Math.round(
-            (this.pot - winner.allInPot) / playersAllIn.length,
-          );
+        if (winner.allIn) {
+          winner.chips += winner.allInPot;
 
-          for (let i = 0; i < playersAllIn.length; i++) {
-            playersAllIn[i].chips = Math.max(oppsPot, 0);
+          let rest = this.pot - winner.allInPot;
+
+          if (rest > 0) {
+            const oppsRanks = winners.map(i => this.players[i]);
+            oppsRanks.shift();
+
+            for (let i = 0; i < oppsRanks.length; i++) {
+              const opp = oppsRanks[i];
+
+              if (opp.allIn) {
+                const earning = Math.min(opp.allInPot, rest);
+                opp.chips += earning;
+                rest -= earning;
+              } else {
+                opp.chips += rest;
+                rest = 0;
+              }
+            }
           }
+        } else {
+          winner.chips += this.pot;
         }
 
-        this.stage = 0;
-        // this.newHands();
+        if (this.test && this.test.mode === 'ChipsLoss') {
+          this.test.onGoing = false;
+          this.showCards = false;
+        } else {
+          this.newHands();
+        }
       } else {
         if (!this.showCards) {
           for (let i = 0; i < this.players.length; i++) {
-            this.players[i].bet = 0;
-            this.players[i].hasTalk = false;
+            if (!this.players[i].allIn) {
+              this.players[i].bet = 0;
+              this.players[i].hasTalk = false;
+            }
           }
         }
 
         this.revealBoard();
+        this.betToCall = 0;
         this.stage += 1;
 
         this.turn = this.players[0].dealer ? 1 : 0;
+        if (this.players[this.turn].allIn) this.nextTurn(true);
       }
     }
 
-    if (this.stage !== 0 && this.showCards) this.checkEndBetting();
+    if (this.showCards) this.checkEndBetting();
   }
 
   allInPot(player, allIn) {
@@ -231,8 +235,15 @@ export default class Poker {
       const opp = players[i];
 
       if (opp.bet > allIn) {
-        allInPot += -opp.bet + Math.min(opp.bet, allIn);
-        player.allInPotUser.push(opp.userId);
+        if (opp.allIn) {
+          if (this.stage === opp.allInStage) {
+            allInPot += -opp.bet + Math.min(opp.bet, allIn);
+            player.allInPotUser.push(opp.userId);
+          }
+        } else {
+          allInPot += -opp.bet + Math.min(opp.bet, allIn);
+          player.allInPotUser.push(opp.userId);
+        }
       }
     }
 
@@ -270,6 +281,7 @@ export default class Poker {
     player.allInPotUser = [];
     player.allInPot = this.allInPot(player, allIn);
     this.pot += allIn - player.bet;
+    if (allIn > this.betToCall) this.resetTalk();
     this.betToCall = Math.max(allIn, this.betToCall);
     player.chips = 0;
 
@@ -279,6 +291,13 @@ export default class Poker {
     player.hasTalk = true;
     this.nextTurn(true);
     this.checkEndBetting();
+  }
+
+  resetTalk() {
+    for (let i = 0; i < this.players.length; i++) {
+      const player = this.players[i];
+      if (!player.allIn) player.hasTalk = false;
+    }
   }
 
   raise(raise) {
@@ -298,7 +317,7 @@ export default class Poker {
 
   call() {
     const player = this.players[this.turn];
-    if (this.betToCall >= player.chips + player.bet) {
+    if (this.betToCall >= player.chips + player.bet && player.chips > 0) {
       this.allIn();
     } else {
       const diffToCall = this.betToCall - player.bet;
@@ -332,7 +351,12 @@ export default class Poker {
 
     if (this.players.length === 1) {
       this.players[0].chips += this.pot;
-      this.newHands();
+
+      if (this.test && this.test.mode === 'ChipsLoss') {
+        this.test.onGoing = false;
+      } else {
+        this.newHands();
+      }
     } else {
       this.nextTurn(false);
       this.checkEndBetting();
@@ -351,6 +375,7 @@ export default class Poker {
     this.pot = 0;
     this.betToCall = 0;
     this.stage = 0;
+    this.showCards = false;
     this.turn = 3 % this.allPlayers.length;
     this.board = [];
 
@@ -394,7 +419,7 @@ export default class Poker {
   }
 
   initPlayers() {
-    // this.shuffleHands();
+    this.shuffleHands();
     this.setPlayersPosition();
     this.players = this.allPlayers.slice();
     this.turn %= this.players.length;
@@ -423,13 +448,14 @@ export default class Poker {
   setPlayersPosition() {
     // players chips
     for (let i = 0; i < this.allPlayers.length; i++) {
-      // this.allPlayers[i].chips = this.buyIn;
+      if (!this.allPlayers[i].chips) {
+        this.allPlayers[i].chips = this.buyIn;
+      }
       this.allPlayers[i].bet = 0;
     }
 
     // dealer
-    // const dealerIndex = Math.floor(Math.random() * this.allPlayers.length);
-    const dealerIndex = 0;
+    const dealerIndex = Math.floor(Math.random() * this.allPlayers.length);
     this.allPlayers[dealerIndex].dealer = true;
     this.allPlayers = this.allPlayers
       .slice(dealerIndex)
@@ -450,13 +476,16 @@ export default class Poker {
   }
 }
 
-const players = [
-  { userId: 'like_a_virgin', chips: 418, cards: ['4h', '5h'] },
-  { userId: 'LuckyPete47', chips: 1399, cards: ['Tc', '6c'] },
-  { userId: 'max', chips: 1611, cards: ['Kd', 'Ac'] },
-  { userId: 'zonflar', chips: 308, cards: ['Jd', '3h'] },
-  { userId: 'Asko1217', chips: 1218, cards: ['Jd', '3h'] },
-];
-const buyIn = 100;
+// const players = [
+//   { userId: 'guest643815', chips: 64916, cards: ['8c', 'Jh'] },
+//   { userId: 'warbird59', chips: 2000, cards: ['Jd', '3h'] },
+//   { userId: 'gustavoRS', chips: 2000, cards: ['8d', 'Ad'] },
+//   { userId: 'KINCAERIC', chips: 2055, cards: ['8d', 'Ad'] },
+//   { userId: 'bopop', chips: 1005, cards: ['8d', 'Ad'] },
+//   { userId: 'Culchie', chips: 1250, cards: ['4h', 'Js'] },
+//   { userId: 'AAkroMM', chips: 11677, cards: ['7s', '7h'] },
+//   { userId: 'late4dinner', chips: 1110, cards: ['Qs', 'Ts'] },
+// ];
+// const buyIn = 100;
 
-const poker = new Poker(players, buyIn);
+// const poker = new Poker({ players, buyIn, test: false });
