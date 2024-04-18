@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "start": "meteor run",
-    "test": "meteor test --once --driver-package meteortesting:mocha",
+    "test": "meteor test --driver-package meteortesting:mocha --port 3002",
     "test-app": "TEST_WATCH=1 meteor test --full-app --driver-package meteortesting:mocha",
     "visualize": "meteor --production --extra-packages bundle-visualizer"
   },
@@ -17,6 +17,7 @@
     "eslint-plugin-no-relative-import-paths": "^1.5.4",
     "jquery": "^3.7.1",
     "meteor-node-stubs": "^1.2.7",
+    "mocha": "^10.4.0",
     "prettier-eslint": "^16.3.0"
   },
   "meteor": {
