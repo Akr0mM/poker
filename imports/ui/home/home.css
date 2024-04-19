@@ -1,0 +1,57 @@
+.home {
+  width: 100vw;
+  height: 100vh;
+  background: #121212;
+
+  display: grid;
+  place-items: center;
+}
+
+.form-input {
+  outline: none;
+  border: none;
+  background-color: #131313;
+}
+
+.form-input::-webkit-inner-spin-button,
+.form-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.form {
+  display: grid;
+  place-items: center;
+  grid-gap: 10px;
+}
+
+.create-join {
+  display: ruby;
+  font-size: 1.1rem;
+}
+
+.back {
+  cursor: pointer;
+  width: min-content;
+  font-size: 1.2rem;
+}
+
+.create,
+.join {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+#login-buttons {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 1.1rem;
+}
+
+.not-logged {
+  font-size: 1.1rem;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

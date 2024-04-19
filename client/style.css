@@ -8,7 +8,11 @@
   font-style: normal;
   user-select: none;
 
-  /* color: #ccc; */
+  color: #ccc;
+}
+
+body {
+  background-color: #121212;
 }
 
 img {

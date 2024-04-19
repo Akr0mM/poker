@@ -1,0 +1,30 @@
+<template name="home">
+  <div class="home">
+    {{> loginButtons}} {{#if currentUser}} {{#if create}}
+    <div class="create-form form">
+      <div style="font-size: 1.3rem">Creating</div>
+      <input type="text" placeholder="Table name" class="form-input" />
+      <input type="number" class="form-input" placeholder="Buy in" />
+      <div style="font-style: italic">Big blind : <span>2</span></div>
+      <div style="font-style: italic">Small blind : <span>1</span></div>
+      <div class="back">&lt;</div>
+    </div>
+    {{else}} {{#if join}}
+    <div class="join-form form">
+      <div>Joining</div>
+      <div class="back">&lt;</div>
+    </div>
+    {{else}}
+
+    <div class="create-join">
+      <div class="create">Create</div>
+      or
+      <div class="join">Join</div>
+      a table
+    </div>
+
+    {{/if}} {{/if}} {{else}}
+    <div class="not-logged">You have to log in first</div>
+    {{/if}}
+  </div>
+</template>
