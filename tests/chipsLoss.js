@@ -1,6 +1,6 @@
 /* eslint-disable no-undef */
 import assert from 'assert';
-import Poker from '../imports/ui/poker/poker';
+import Poker from '../imports/ui/poker/Poker';
 
 const numberOfHands = 1000;
 

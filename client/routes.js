@@ -1,4 +1,4 @@
-import { FlowRouter } from 'meteor/kadira:flow-router';
+import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
 import { BlazeLayout } from 'meteor/kadira:blaze-layout';
 
 const route = name => FlowRouter.route(`/${name}`, {
@@ -19,4 +19,15 @@ FlowRouter.route('/', {
 });
 
 route('home');
-route('table');
+
+FlowRouter.route('/:table', {
+  name: 'table',
+  action(params, queryParams) {
+    BlazeLayout.render('layout', { mainTemplate: 'table' });
+    if (queryParams && queryParams.name) {
+      Session.set('tableName', queryParams.name);
+    } else {
+      console.error('Unvalid URL');
+    }
+  },
+});
