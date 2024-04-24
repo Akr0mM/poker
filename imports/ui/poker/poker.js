@@ -55,13 +55,13 @@ const cards = [
   'As',
 ];
 
-const l = (a, b) => {
-  if (b !== undefined) {
-    console.log(a, b);
-  } else {
-    console.log(a);
-  }
-};
+// const l = (a, b) => {
+//   if (b !== undefined) {
+//     console.log(a, b);
+//   } else {
+//     console.log(a);
+//   }
+// };
 
 const t = (m, arr) => {
   if (arr !== undefined) {
@@ -88,11 +88,9 @@ export default class Poker {
     if (this.test) {
       this.testMode = this.test.mode;
       this.test.onGoing = true;
-      this.smallBlind = Math.round(this.buyIn / 200);
-    } else {
-      this.smallBlind = Math.round((this.buyIn / 200) * 100) / 100;
     }
 
+    this.smallBlind = this.buyIn / 200;
     this.bigBlind = this.smallBlind * 2;
     this.pot = 0;
     this.betToCall = 0;

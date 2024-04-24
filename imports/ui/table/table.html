@@ -1,3 +1,38 @@
 <template name="table">
-  <div class="table"></div>
+  {{#if currentUser}} {{#if isLoading}}
+
+  <div class="loading">
+    {{#if tableNotFound}}
+    <div>Table not found</div>
+    {{else}}
+    <div>Loading...</div>
+    {{/if}}
+  </div>
+
+  {{/if}} {{else}}
+
+  <div class="loading">
+    <div>You need to log in first.</div>
+    {{> loginButtons}}
+  </div>
+
+  {{/if}}
+
+  <div class="nav">Table : <span id="table-name"></span></div>
+
+  <div class="table-c">
+    <div class="table">
+      <div class="table-border"></div>
+
+      {{#unless isLoading}} {{#each currentPlayers}}
+
+      <div class="users {{this.boardPosition}}">
+        <div class="username">{{this.username}}</div>
+        <div class="chips">${{this.chips}}</div>
+      </div>
+
+      {{/each}} {{/unless}}
+    </div>
+  </div>
+  <div class="bettings">Bettings</div>
 </template>
