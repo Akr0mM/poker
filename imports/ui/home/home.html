@@ -2,24 +2,48 @@
   <div class="home">
     {{> loginButtons}} {{#if currentUser}} {{#if create}}
     <div class="create-form form">
-      <div style="font-size: 1.3rem">Creating</div>
-      <input type="text" placeholder="Table name" class="form-input" />
-      <input type="number" class="form-input" placeholder="Buy in" />
-      <div style="font-style: italic">Big blind : <span>2</span></div>
-      <div style="font-style: italic">Small blind : <span>1</span></div>
+      <div style="font-size: 1.6rem">Creating</div>
+      <input
+        type="text"
+        placeholder="Table name"
+        class="form-input"
+        id="name-input"
+      />
+      <input
+        type="number"
+        class="form-input"
+        placeholder="Buy in"
+        id="buy-in-input"
+      />
+      <div style="display: grid; place-items: center">
+        <div style="font-style: italic; font-size: 0.95rem">
+          Big blind : <span id="bb">~</span>
+        </div>
+        <div style="font-style: italic; font-size: 0.95rem">
+          Small blind : <span id="sb">~</span>
+        </div>
+      </div>
+      <div class="submit-create submit">Create table</div>
       <div class="back">&lt;</div>
     </div>
     {{else}} {{#if join}}
     <div class="join-form form">
-      <div>Joining</div>
+      <div style="font-size: 1.6rem">Joining</div>
+      <input
+        type="text"
+        placeholder="Table name"
+        class="form-input"
+        id="name-input"
+      />
+      <div class="submit-join submit">Join table</div>
       <div class="back">&lt;</div>
     </div>
     {{else}}
 
-    <div class="create-join">
-      <div class="create">Create</div>
-      or
+    <div class="create-join" style="font-size: 1.2rem">
       <div class="join">Join</div>
+      or
+      <div class="create">Create</div>
       a table
     </div>
 

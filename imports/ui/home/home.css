@@ -7,10 +7,27 @@
   place-items: center;
 }
 
+.submit {
+  font-size: 1.35rem;
+  cursor: pointer;
+  transition-duration: 0.4s;
+}
+
+.submit:hover {
+  color: #219627;
+}
+
 .form-input {
+  width: 150px;
+  height: 25px;
+  font-size: 1.1rem;
   outline: none;
-  border: none;
+  border: 1px solid #6f6f6f;
   background-color: #131313;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  border-radius: 15px;
 }
 
 .form-input::-webkit-inner-spin-button,
@@ -21,7 +38,7 @@
 .form {
   display: grid;
   place-items: center;
-  grid-gap: 10px;
+  grid-gap: 20px;
 }
 
 .create-join {
